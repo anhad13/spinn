@@ -24,6 +24,7 @@ from spinn.util.logparse import parse_flags
 
 import spinn.rl_spinn
 import spinn.spinn_core_model
+import spinn.r_spinn
 import spinn.plain_rnn
 import spinn.cbow
 import spinn.choi_pyramid
@@ -652,6 +653,8 @@ def init_model(
         build_model = spinn.spinn_core_model.build_model
     elif FLAGS.model_type == "RLSPINN":
         build_model = spinn.rl_spinn.build_model
+    elif FLAGS.model_type == "RSPINN":
+        build_model = spinn.r_spinn.build_model
     elif FLAGS.model_type == "ChoiPyramid":
         build_model = spinn.choi_pyramid.build_model
     else:
