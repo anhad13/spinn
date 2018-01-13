@@ -695,10 +695,9 @@ class BaseModel(SpinnBaseModel):
             t_logprobs.flatten()).long().view(-1, 1), volatile=not self.training))
         rewards*=p_actions
         baseline*=p_actions
-        policy_loss= nn.NLLLoss()(baseline, rewards) * \
-            self.rl_weight
+        advantage=-1*(reward-baseline)
+        policy_losses = to_gpu(Variable(advantage, volatile=p_actions.volatile))
         return policy_loss
-
 
 
     def output_hook(self, output, sentences, transitions, y_batch=None):
