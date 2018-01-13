@@ -696,7 +696,7 @@ class BaseModel(SpinnBaseModel):
         rewards*=p_actions
         baseline*=p_actions
         advantage=-1*(reward-baseline)
-        policy_losses = to_gpu(Variable(advantage, volatile=p_actions.volatile))
+        policy_losses = to_gpu(Variable(advantage, volatile=p_actions.volatile))*self.rl_weight
         return policy_loss
 
 

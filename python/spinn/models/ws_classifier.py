@@ -31,6 +31,7 @@ from spinn.models.base import flag_defaults, init_model
 from spinn.models.base import get_checkpoint_path, log_path
 from spinn.models.base import load_data_and_embeddings
 
+FLAGS = gflags.FLAGS
 
 def evaluate(FLAGS, model, eval_set, log_entry,
              logger, step, vocabulary=None, show_sample=False, eval_index=0):
