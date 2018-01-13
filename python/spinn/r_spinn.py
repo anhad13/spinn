@@ -695,8 +695,9 @@ class BaseModel(SpinnBaseModel):
             t_logprobs.flatten()).long().view(-1, 1), volatile=not self.training))
         rewards*=p_actions
         baseline*=p_actions
-        self.policy_loss = nn.NLLLoss()(baseline, rewards) * \
+        policy_loss= nn.NLLLoss()(baseline, rewards) * \
             self.rl_weight
+        return policy_loss
 
 
 
