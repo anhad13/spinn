@@ -188,11 +188,11 @@ def train_loop(
     # Accumulate useful statistics.
     A = Accumulator(maxlen=FLAGS.deque_length)
 
-    # Checkpoint paths.
-    #standard_checkpoint_path = get_checkpoint_path(
-        #FLAGS.ckpt_path, FLAGS.experiment_name)
-    #best_checkpoint_path = get_checkpoint_path(
-        #FLAGS.ckpt_path, FLAGS.experiment_name, best=True)
+    Checkpoint paths.
+    standard_checkpoint_path = get_checkpoint_path(
+        FLAGS.ckpt_path, FLAGS.experiment_name)
+    best_checkpoint_path = get_checkpoint_path(
+        FLAGS.ckpt_path, FLAGS.experiment_name, best=True)
 
     # Build log format strings.
     model.train()
@@ -219,7 +219,7 @@ def train_loop(
     for step in range(step, FLAGS.training_steps):
         # if (step - best_dev_step) > FLAGS.early_stopping_steps_to_wait:
         #     logger.Log('No improvement after ' + str(FLAGS.early_stopping_steps_to_wait) + ' steps. Stopping training.')
-        #     break
+        #     #break
 
         model.train()
         log_entry.Clear()

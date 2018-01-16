@@ -721,7 +721,7 @@ class BaseModel(SpinnBaseModel):
 	#policy_losses = to_gpu(Variable(advantage*p_actions, volatile=p_actions.volatile))*self.rl_weight
         #print(advantage.shape)
 	policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*p_actions
-	return policy_loss*self.rl_weight
+	return policy_loss*0.0
 
 
     def output_hook(self, output, sentences, transitions, y_batch=None):
