@@ -7,11 +7,20 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
-from spinn.util.blocks import MLP
-from spinn.util.blocks import the_gpu, to_gpu
+from spinn.util.blocks import Embed, Linear, MLP
+from spinn.util.blocks import the_gpu, to_gpu, lstm, bundle, unbundle
+from spinn.util.misc import Example, Vocab
+from spinn.util.blocks import HeKaimingInitializer
+from spinn.util.catalan import ShiftProbabilities
+from spinn.util.blocks import LayerNormalization
 from spinn.spinn_core_model import SPINN
 from spinn.spinn_core_model import BaseModel as SpinnBaseModel
 import torch.nn.functional as F
+
+
+from spinn.data import T_SHIFT, T_REDUCE, T_SKIP
+
+
 
 def build_model(data_manager, initial_embeddings, vocab_size,
                 num_classes, FLAGS, context_args, composition_args, **kwargs):
@@ -130,19 +139,20 @@ class RLAction(nn.Module):
             size,
             out_dim,
             relu_size):
-        # Initialize layers.
+        # Initialize layersi.
+	super(RLAction, self).__init__()
         self.relu_size=100
         self.buf_l = Linear()(size, out_dim, bias=False)
         self.stack1_l = Linear()(size, out_dim, bias=False)
         self.stack2_l = Linear()(size, out_dim, bias=False)
         self.ll_after= Linear()(out_dim*3, self.relu_size, bias=True)
-        self.post_relu= Linear(self.relu_size, 2,  bias=True)
+        self.post_relu= Linear()(self.relu_size, 2,  bias=True)
 
     def forward(self, top_buf, top_stack_1, top_stack_2):
         top_buf = self.buf_l(top_buf)
         top_stack_1 = self.stack1_l(top_stack_1)
         top_stack_2 = self.stack2_l(top_stack_2)
-        next_inp=torch.cat([top_buf, top_stack_1, top_stack_2])
+        next_inp=torch.cat([top_buf, top_stack_1, top_stack_2],1)
         out_linear=self.ll_after(next_inp)
         out_relu = F.relu(out_linear)
         out_linear2= self.post_relu(out_relu)
@@ -152,7 +162,7 @@ class RLAction(nn.Module):
 class RSPINN(SPINN):
 
     def __init__(self, args, vocab, predict_use_cell):
-        super(SPINN, self).__init__()
+        super(RSPINN, self).__init__(args, vocab, predict_use_cell)
 
         # Optional debug mode.
         self.debug = False
@@ -585,7 +595,8 @@ class RSPINN(SPINN):
 class BaseModel(SpinnBaseModel):
 
     optimize_transition_loss = True
-
+    def build_rspinn(self, args, vocab, predict_use_cell):
+        return RSPINN(args, vocab, predict_use_cell)
     def __init__(self, model_dim=None,
                  word_embedding_dim=None,
                  vocab_size=None,
@@ -614,7 +625,7 @@ class BaseModel(SpinnBaseModel):
                  evolution=None,
                  **kwargs
                  ):
-        super(BaseModel, self).__init__()
+        super(SpinnBaseModel, self).__init__()
 
         assert not (
             use_tracking_in_composition and not lateral_tracking), "Lateral tracking must be on to use tracking in composition."
@@ -677,7 +688,7 @@ class BaseModel(SpinnBaseModel):
         h = self.wrap(h_list)
         return h, transition_acc, transition_loss
 
-    def mc_reinforce(rewards, baseline):
+    def mc_reinforce(self, rewards, baseline):
         t_preds = np.concatenate([m['t_preds']
                                   for m in self.spinn.memories if 't_preds' in m])
         t_mask = np.concatenate([m['t_mask']
@@ -686,18 +697,31 @@ class BaseModel(SpinnBaseModel):
             [m['t_valid_mask'] for m in self.spinn.memories if 't_mask' in m])
         t_logprobs = torch.cat(
             [m['t_logprobs'] for m in self.spinn.memories if 't_logprobs' in m], 0)
-        if self.use_sentence_pair:
+        
+	if self.use_sentence_pair:
             # Handles the case of SNLI where each reward is used for two
             # sentences.
             rewards = torch.cat([rewards, rewards], 0)
-            baseline = torch.cat([actions, actions], 0)
-        p_actions = to_gpu(Variable(torch.from_numpy(
-            t_logprobs.flatten()).long().view(-1, 1), volatile=not self.training))
-        rewards*=p_actions
-        baseline*=p_actions
-        advantage=-1*(reward-baseline)
-        policy_losses = to_gpu(Variable(advantage, volatile=p_actions.volatile))*self.rl_weight
-        return policy_loss
+            baseline = torch.cat([baseline, baseline], 0)
+	
+	#print(t_logprobs.shape)
+	t_logprobs=t_logprobs.view(1,-1)
+	#p_actions = to_gpu(Variable(torch.from_numpy(
+         #   t_logprobs).long().view(-1, 1), volatile=not self.training))
+        #rewards*=p_actions
+        #baseline*=p_actions
+        p_actions=t_logprobs[:,0].long()
+	advantage=-1*(rewards-baseline)
+	batch_size = advantage.size(0)
+	seq_length = t_preds.shape[0] / batch_size
+	a_index = np.arange(batch_size)
+	a_index = a_index.reshape(1, -1).repeat(seq_length, axis=0).flatten()
+	advantage = torch.index_select(advantage, 0, torch.from_numpy(a_index))
+        #print(advantage.shape)
+	#policy_losses = to_gpu(Variable(advantage*p_actions, volatile=p_actions.volatile))*self.rl_weight
+        #print(advantage.shape)
+	policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*p_actions
+	return policy_loss*self.rl_weight
 
 
     def output_hook(self, output, sentences, transitions, y_batch=None):
@@ -708,10 +732,10 @@ class BaseModel(SpinnBaseModel):
         #now we figure out policy loss
         #simple 0-1 loss for rewards
         y = probs.max(1, keepdim=False)[1].cpu()
-        rewards = torch.eq(y, y_batch).long()
-        baseline = torch.zeros(rewards.shape)#for now
+        rewards = torch.eq(y, torch.Tensor(y_batch).long()).long()
+        baseline = torch.zeros(rewards.shape).long()#for now
         advantage = rewards - baseline
-        self.policy_loss = mc_reinforce(rewards, baseline)
+        self.policy_loss = self.mc_reinforce(rewards, baseline)
 
 
     def forward(

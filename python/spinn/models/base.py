@@ -341,7 +341,7 @@ def get_flags():
     # Model architecture settings.
     gflags.DEFINE_enum(
         "model_type", "RNN", [
-            "CBOW", "RNN", "SPINN", "RLSPINN", "ChoiPyramid"], "")
+            "CBOW", "RSPINN","RNN", "SPINN", "RLSPINN", "ChoiPyramid"], "")
     gflags.DEFINE_integer("gpu", -1, "")
     gflags.DEFINE_integer("model_dim", 8, "")
     gflags.DEFINE_integer("word_embedding_dim", 8, "")

@@ -186,7 +186,7 @@ def train_loop(
         best_dev_step,
         vocabulary):
     # Accumulate useful statistics.
-    #A = Accumulator(maxlen=FLAGS.deque_length)
+    A = Accumulator(maxlen=FLAGS.deque_length)
 
     # Checkpoint paths.
     #standard_checkpoint_path = get_checkpoint_path(
