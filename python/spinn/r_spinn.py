@@ -142,13 +142,15 @@ class RLAction(nn.Module):
         # Initialize layersi.
 	super(RLAction, self).__init__()
         self.relu_size=100
+        self.tracker_l = Linear()(size, out_dim, bias=False)
         self.buf_l = Linear()(size, out_dim, bias=False)
         self.stack1_l = Linear()(size, out_dim, bias=False)
         self.stack2_l = Linear()(size, out_dim, bias=False)
         self.ll_after= Linear()(out_dim*3, self.relu_size, bias=True)
         self.post_relu= Linear()(self.relu_size, 2,  bias=True)
 
-    def forward(self, top_buf, top_stack_1, top_stack_2):
+    def forward(self, top_buf, top_stack_1, top_stack_2, tracker_h):
+        t_tracker=self.tracker_l(tracker_h)
         top_buf = self.buf_l(top_buf)
         top_stack_1 = self.stack1_l(top_stack_1)
         top_stack_2 = self.stack2_l(top_stack_2)
@@ -423,17 +425,19 @@ class RSPINN(SPINN):
             # A. We have a tracking component and,
             # B. There is at least one transition that will not be skipped.
             if sum(cant_skip) > 0:#and hasattr(self, 'tracker'):
+                tracker_h, tracker_c = self.tracker(
+                    self.extract_h(self.memory['top_buf']),
+                    self.extract_h(self.memory['top_stack_1']),
+                    self.extract_h(self.memory['top_stack_2']))
                 out_rl= self.rl_action(
+                    tracker_h,
                     self.extract_h(self.memory['top_buf']),
                     self.extract_h(self.memory['top_stack_1']),
                     self.extract_h(self.memory['top_stack_2']))
 
                 # Get hidden output from the tracker. Used to predict
                 # transitions.
-                tracker_h, tracker_c = self.tracker(
-                    self.extract_h(self.memory['top_buf']),
-                    self.extract_h(self.memory['top_stack_1']),
-                    self.extract_h(self.memory['top_stack_2']))
+
 
                 # if hasattr(self, 'transition_net'):
                 #     transition_inp = [tracker_h]
@@ -697,13 +701,13 @@ class BaseModel(SpinnBaseModel):
             [m['t_valid_mask'] for m in self.spinn.memories if 't_mask' in m])
         t_logprobs = torch.cat(
             [m['t_logprobs'] for m in self.spinn.memories if 't_logprobs' in m], 0)
-        
+
 	if self.use_sentence_pair:
             # Handles the case of SNLI where each reward is used for two
             # sentences.
             rewards = torch.cat([rewards, rewards], 0)
             baseline = torch.cat([baseline, baseline], 0)
-	
+
 	#print(t_logprobs.shape)
 	t_logprobs=t_logprobs.view(1,-1)
 	#p_actions = to_gpu(Variable(torch.from_numpy(
@@ -722,7 +726,7 @@ class BaseModel(SpinnBaseModel):
         #print(advantage.shape)
 	policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*p_actions
 	policy_loss=torch.sum(policy_loss.float())/p_actions.size(0)
-	return policy_loss#*0.000121392198451
+	return policy_loss*0.000121392198451
 
 
     def output_hook(self, output, sentences, transitions, y_batch=None):
