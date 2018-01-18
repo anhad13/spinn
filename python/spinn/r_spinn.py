@@ -138,11 +138,12 @@ class RLAction(nn.Module):
             self,
             size,
             out_dim,
-            relu_size):
+            relu_size,
+            tracker_size):
         # Initialize layersi.
 	super(RLAction, self).__init__()
         self.relu_size=100
-        self.tracker_l = Linear()(size, out_dim, bias=False)
+        self.tracker_l = Linear()(tracker_size, out_dim, bias=False)
         self.buf_l = Linear()(size, out_dim, bias=False)
         self.stack1_l = Linear()(size, out_dim, bias=False)
         self.stack2_l = Linear()(size, out_dim, bias=False)
@@ -193,7 +194,7 @@ class RSPINN(SPINN):
                 else:
                     tinp_size = self.tracker.state_size
                 self.transition_net = nn.Linear(tinp_size, 2)
-        self.rl_action=RLAction(args.size, 232, 100)
+        self.rl_action=RLAction(args.size, 232, 100, args.tracker_size)
 
         self.choices = np.array([T_SHIFT, T_REDUCE], dtype=np.int32)
 
