@@ -188,7 +188,7 @@ def train_loop(
     # Accumulate useful statistics.
     A = Accumulator(maxlen=FLAGS.deque_length)
 
-    Checkpoint paths.
+    #Checkpoint paths.
     standard_checkpoint_path = get_checkpoint_path(
         FLAGS.ckpt_path, FLAGS.experiment_name)
     best_checkpoint_path = get_checkpoint_path(
@@ -438,7 +438,7 @@ def run(only_forward=False):
         FLAGS.ckpt_path, FLAGS.experiment_name, best=True)
 
     # Load checkpoint if available.
-    if FLAGS.load_best and os.path.isfile(best_checkpoint_path):
+    if os.path.isfile(best_checkpoint_path):
         logger.Log("Found best checkpoint, restoring.")
         step, best_dev_error, best_dev_step = trainer.load(best_checkpoint_path, cpu=FLAGS.gpu < 0)
         logger.Log(

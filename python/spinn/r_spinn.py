@@ -589,7 +589,7 @@ class RSPINN(SPINN):
                 "two zeros and the sentence encoding."
             assert all(len(buf) == 1 for buf in self.bufs), \
                 "Stacks should be fully shifted and have 1 zero."
-
+	print(self.rl_action.post_relu.weight)
         return [stack[-1]
                 for stack in self.stacks], transition_acc, transition_loss
 class BaseModel(SpinnBaseModel):
@@ -721,7 +721,8 @@ class BaseModel(SpinnBaseModel):
 	#policy_losses = to_gpu(Variable(advantage*p_actions, volatile=p_actions.volatile))*self.rl_weight
         #print(advantage.shape)
 	policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*p_actions
-	return policy_loss*0.0
+	policy_loss=torch.sum(policy_loss.float())/p_actions.size(0)
+	return policy_loss#*0.000121392198451
 
 
     def output_hook(self, output, sentences, transitions, y_batch=None):
