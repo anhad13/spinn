@@ -147,7 +147,7 @@ class RLAction(nn.Module):
         self.buf_l = Linear()(size, out_dim, bias=False)
         self.stack1_l = Linear()(size, out_dim, bias=False)
         self.stack2_l = Linear()(size, out_dim, bias=False)
-        self.ll_after= Linear()(out_dim*3, self.relu_size, bias=True)
+        self.ll_after= Linear()(out_dim*4, self.relu_size, bias=True)
         self.post_relu= Linear()(self.relu_size, 2,  bias=True)
 
     def forward(self, top_buf, top_stack_1, top_stack_2, tracker_h):
@@ -155,7 +155,7 @@ class RLAction(nn.Module):
         top_buf = self.buf_l(top_buf)
         top_stack_1 = self.stack1_l(top_stack_1)
         top_stack_2 = self.stack2_l(top_stack_2)
-        next_inp=torch.cat([top_buf, top_stack_1, top_stack_2],1)
+        next_inp=torch.cat([t_tracker, top_buf, top_stack_1, top_stack_2],1)
         out_linear=self.ll_after(next_inp)
         out_relu = F.relu(out_linear)
         out_linear2= self.post_relu(out_relu)
