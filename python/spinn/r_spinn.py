@@ -162,6 +162,30 @@ class RLAction(nn.Module):
         return out_linear2
 
 
+class RLAction2(nn.Module):
+    '''This NN is used to make a decision(shift/reduce).'''
+
+    def __init__(
+            self,
+            size,
+            out_dim,
+            relu_size,
+            tracker_size):
+        # Initialize layersi.
+	    super(RLAction2, self).__init__()
+        self.relu_size=200
+        self.tracker_l = Linear()(tracker_size, out_dim, bias=False)
+        self.ll_after= Linear()(out_dim, self.relu_size, bias=True)
+        self.post_relu= Linear()(self.relu_size, 2,  bias=True)
+
+    def forward(self, top_buf, top_stack_1, top_stack_2, tracker_h):
+        t_tracker=self.tracker_l(tracker_h)
+        out_linear=self.ll_after(t_tracker)
+        out_relu = F.relu(out_linear)
+        out_linear2= self.post_relu(out_relu)
+        return out_linear2
+
+
 class RSPINN(SPINN):
 
     def __init__(self, args, vocab, predict_use_cell):
@@ -194,7 +218,7 @@ class RSPINN(SPINN):
                 else:
                     tinp_size = self.tracker.state_size
                 self.transition_net = nn.Linear(tinp_size, 2)
-        self.rl_action=RLAction(args.size, 232, 100, args.tracker_size)
+        self.rl_action=RLAction2(args.size, 232, 100, args.tracker_size)
 
         self.choices = np.array([T_SHIFT, T_REDUCE], dtype=np.int32)
 
