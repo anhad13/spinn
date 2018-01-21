@@ -142,7 +142,7 @@ class RLAction(nn.Module):
             tracker_size):
         # Initialize layersi.
 	super(RLAction, self).__init__()
-        self.relu_size=100
+        self.relu_size=200
         self.tracker_l = Linear()(tracker_size, out_dim, bias=False)
         self.buf_l = Linear()(size, out_dim, bias=False)
         self.stack1_l = Linear()(size, out_dim, bias=False)
@@ -431,10 +431,10 @@ class RSPINN(SPINN):
                     self.extract_h(self.memory['top_stack_1']),
                     self.extract_h(self.memory['top_stack_2']))
                 out_rl= self.rl_action(
-                    tracker_h,
                     self.extract_h(self.memory['top_buf']),
                     self.extract_h(self.memory['top_stack_1']),
-                    self.extract_h(self.memory['top_stack_2']))
+                    self.extract_h(self.memory['top_stack_2']),
+			tracker_h)
 
                 # Get hidden output from the tracker. Used to predict
                 # transitions.
