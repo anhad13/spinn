@@ -172,7 +172,7 @@ class RLAction2(nn.Module):
             relu_size,
             tracker_size):
         # Initialize layersi.
-	    super(RLAction2, self).__init__()
+	super(RLAction2, self).__init__()
         self.relu_size=200
         self.tracker_l = Linear()(tracker_size, out_dim, bias=False)
         self.ll_after= Linear()(out_dim, self.relu_size, bias=True)
@@ -218,7 +218,7 @@ class RSPINN(SPINN):
                 else:
                     tinp_size = self.tracker.state_size
                 self.transition_net = nn.Linear(tinp_size, 2)
-        self.rl_action=RLAction2(args.size, 232, 100, args.tracker_size)
+        self.rl_action=RLAction(args.size, 232, 100, args.tracker_size)
 
         self.choices = np.array([T_SHIFT, T_REDUCE], dtype=np.int32)
 
@@ -741,6 +741,8 @@ class BaseModel(SpinnBaseModel):
         #baseline*=p_actions
         p_actions=t_logprobs[:,0].long()
 	advantage=-1*(rewards-baseline)
+	print("PACTIONS:---")
+	print(p_actions)
 	batch_size = advantage.size(0)
 	seq_length = t_preds.shape[0] / batch_size
 	a_index = np.arange(batch_size)
@@ -751,6 +753,7 @@ class BaseModel(SpinnBaseModel):
         #print(advantage.shape)
 	policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*p_actions
 	policy_loss=torch.sum(policy_loss.float())/p_actions.size(0)
+	#print(policy_loss)
 	return policy_loss*0.000121392198451
 
 

@@ -82,7 +82,7 @@ def evaluate(FLAGS, model, eval_set, log_entry,
         # TODO: Restore support in Pyramid if using.
         can_sample = FLAGS.model_type in ["ChoiPyramid"] or (
             FLAGS.model_type == "SPINN" and FLAGS.use_internal_parser)
-        if show_sample and can_sample:
+        if show_sample:# and can_sample:
             tmp_samples = model.get_samples(
                 eval_X_batch, vocabulary, only_one=not FLAGS.write_eval_report)
             tree_strs = prettyprint_trees(tmp_samples)
@@ -112,9 +112,7 @@ def evaluate(FLAGS, model, eval_set, log_entry,
 
         if FLAGS.write_eval_report:
             transitions_per_example, _ = model.spinn.get_transitions_per_example(
-                style="preds" if FLAGS.eval_report_use_preds else "given") if (
-                FLAGS.model_type == "SPINN" and FLAGS.use_internal_parser) else (
-                None, None)
+                style="preds")
 
             if model.use_sentence_pair:
                 batch_size = pred.size(0)
