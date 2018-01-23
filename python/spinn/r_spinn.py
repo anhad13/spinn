@@ -733,27 +733,23 @@ class BaseModel(SpinnBaseModel):
             rewards = torch.cat([rewards, rewards], 0)
             baseline = torch.cat([baseline, baseline], 0)
 
-	#print(t_logprobs.shape)
 	t_logprobs=t_logprobs.view(1,-1)
-	#p_actions = to_gpu(Variable(torch.from_numpy(
-         #   t_logprobs).long().view(-1, 1), volatile=not self.training))
-        #rewards*=p_actions
-        #baseline*=p_actions
-        p_actions=t_logprobs[:,0].long()
+
+        #p_actions=t_logprobs[:,0].long()
 	advantage=-1*(rewards-baseline)
-	print("PACTIONS:---")
-	print(p_actions)
 	batch_size = advantage.size(0)
 	seq_length = t_preds.shape[0] / batch_size
 	a_index = np.arange(batch_size)
 	a_index = a_index.reshape(1, -1).repeat(seq_length, axis=0).flatten()
+	a_index = torch.from_numpy(a_index[t_mask]).long()
+	t_index = to_gpu(Variable(torch.from_numpy(np.arange(t_mask.shape[0])[t_mask])).long())
+
+	t_logprobs = torch.index_select(t_logprobs, 0, t_index)
+	actions = to_gpu(Variable(torch.from_numpy(t_preds[t_mask]).long().view(-1, 1), volatile=not self.training))
+        log_p_action = torch.gather(t_logprobs, 1, actions)
 	advantage = torch.index_select(advantage, 0, torch.from_numpy(a_index))
-        #print(advantage.shape)
-	#policy_losses = to_gpu(Variable(advantage*p_actions, volatile=p_actions.volatile))*self.rl_weight
-        #print(advantage.shape)
-	policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*p_actions
-	policy_loss=torch.sum(policy_loss.float())/p_actions.size(0)
-	#print(policy_loss)
+        policy_loss=to_gpu(Variable(advantage.long().view(1,-1)))*log_p_action
+	policy_loss=torch.sum(policy_loss.float())/log_p_action.size(0)
 	return policy_loss*0.000121392198451
 
 
