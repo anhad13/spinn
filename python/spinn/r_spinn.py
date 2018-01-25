@@ -716,6 +716,72 @@ class BaseModel(SpinnBaseModel):
             example, use_internal_parser=use_internal_parser, validate_transitions=validate_transitions)
         h = self.wrap(h_list)
         return h, transition_acc, transition_loss
+    def reinforce(self, rewards, baseline):
+        """
+        t_preds  = 200...111 (flattened predictions from sub_batches 1...N)
+        t_mask   = 011...111 (binary mask, selecting non-skips only)
+        t_logprobs = (B*N)xC (tensor of sub_batch_size * sub_num_batches x transition classes)
+        a_index  = 011...(N-1)(N-1)(N-1) (masked sub_batch_indices for each transition)
+        t_index  = 013...(B*N-3)(B*N-2)(B*N-1) (masked indices across all sub_batches)
+        """
+
+        # TODO: Many of these ops are on the cpu. Might be worth shifting to
+        # GPU.
+	advantage=rewards-baseline
+        t_preds = np.concatenate([m['t_preds']
+                                  for m in self.spinn.memories if 't_preds' in m])
+        t_mask = np.concatenate([m['t_mask']
+                                 for m in self.spinn.memories if 't_mask' in m])
+        t_valid_mask = np.concatenate(
+            [m['t_valid_mask'] for m in self.spinn.memories if 't_mask' in m])
+        t_logprobs = torch.cat(
+            [m['t_logprobs'] for m in self.spinn.memories if 't_logprobs' in m], 0)
+
+        if self.rl_valid:
+            t_mask = np.logical_and(t_mask, t_valid_mask)
+
+        batch_size = advantage.size(0)
+
+        seq_length = t_preds.shape[0] / batch_size
+
+        a_index = np.arange(batch_size)
+        a_index = a_index.reshape(1, -1).repeat(seq_length, axis=0).flatten()
+        a_index = torch.from_numpy(a_index[t_mask]).long()
+
+        t_index = to_gpu(Variable(torch.from_numpy(
+            np.arange(t_mask.shape[0])[t_mask])).long())
+
+        self.stats = dict(
+            mean=advantage.mean(),
+            mean_magnitude=advantage.abs().mean(),
+            var=advantage.var(),
+            var_magnitude=advantage.abs().var()
+        )
+
+        if self.use_sentence_pair:
+            # Handles the case of SNLI where each reward is used for two
+            # sentences.
+            advantage = torch.cat([advantage, advantage], 0)
+
+        # Expand advantage.
+        advantage = torch.index_select(advantage, 0, a_index)
+
+        # Filter logits.
+        t_logprobs = torch.index_select(t_logprobs, 0, t_index)
+
+        actions = to_gpu(Variable(torch.from_numpy(
+            t_preds[t_mask]).long().view(-1, 1), volatile=not self.training))
+        log_p_action = torch.gather(t_logprobs, 1, actions)
+
+        # NOTE: Not sure I understand why entropy is inside this
+        # multiplication. Investigate?
+        policy_losses = log_p_action.view(-1) * \
+            to_gpu(Variable(advantage, volatile=log_p_action.volatile))
+        policy_loss = -1. * torch.sum(policy_losses)
+        policy_loss /= log_p_action.size(0)
+        policy_loss *= self.rl_weight
+	print(policy_loss)
+        return policy_loss
 
     def mc_reinforce(self, rewards, baseline):
         t_preds = np.concatenate([m['t_preds']
@@ -767,7 +833,7 @@ class BaseModel(SpinnBaseModel):
         rewards = torch.eq(y, torch.Tensor(y_batch).long()).long()
         baseline = torch.zeros(rewards.shape).long()#for now
         advantage = rewards - baseline
-        self.policy_loss = self.mc_reinforce(rewards, baseline)
+        self.policy_loss = self.reinforce(rewards, baseline)
 
 
     def forward(
