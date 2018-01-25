@@ -314,7 +314,7 @@ class BaseModel(_BaseModel):
         policy_loss = -1. * torch.sum(policy_losses)
         policy_loss /= log_p_action.size(0)
         policy_loss *= self.rl_weight
-
+	print(policy_loss)
         return policy_loss
 
     def output_hook(self, output, sentences, transitions, y_batch=None):
