@@ -728,7 +728,8 @@ class BaseModel(SpinnBaseModel):
         # TODO: Many of these ops are on the cpu. Might be worth shifting to
         # GPU.
 	advantage=rewards-baseline
-        t_preds = np.concatenate([m['t_preds']
+        advantage=advantage.float()
+	t_preds = np.concatenate([m['t_preds']
                                   for m in self.spinn.memories if 't_preds' in m])
         t_mask = np.concatenate([m['t_mask']
                                  for m in self.spinn.memories if 't_mask' in m])
@@ -737,8 +738,8 @@ class BaseModel(SpinnBaseModel):
         t_logprobs = torch.cat(
             [m['t_logprobs'] for m in self.spinn.memories if 't_logprobs' in m], 0)
 
-        if self.rl_valid:
-            t_mask = np.logical_and(t_mask, t_valid_mask)
+        #if self.rl_valid:
+        #    t_mask = np.logical_and(t_mask, t_valid_mask)
 
         batch_size = advantage.size(0)
 
@@ -751,12 +752,12 @@ class BaseModel(SpinnBaseModel):
         t_index = to_gpu(Variable(torch.from_numpy(
             np.arange(t_mask.shape[0])[t_mask])).long())
 
-        self.stats = dict(
-            mean=advantage.mean(),
-            mean_magnitude=advantage.abs().mean(),
-            var=advantage.var(),
-            var_magnitude=advantage.abs().var()
-        )
+        #self.stats = dict(
+        #    mean=advantage.mean(),
+        #    mean_magnitude=advantage.abs().mean(),
+        #    var=advantage.var(),
+        #    var_magnitude=advantage.abs().var()
+        #)
 
         if self.use_sentence_pair:
             # Handles the case of SNLI where each reward is used for two
@@ -779,7 +780,7 @@ class BaseModel(SpinnBaseModel):
             to_gpu(Variable(advantage, volatile=log_p_action.volatile))
         policy_loss = -1. * torch.sum(policy_losses)
         policy_loss /= log_p_action.size(0)
-        policy_loss *= self.rl_weight
+        policy_loss *= 0.000121392198451
 	print(policy_loss)
         return policy_loss
 
