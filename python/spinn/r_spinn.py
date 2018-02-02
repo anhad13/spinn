@@ -832,7 +832,8 @@ class BaseModel(SpinnBaseModel):
         #simple 0-1 loss for rewards
         y = probs.max(1, keepdim=False)[1].cpu()
         rewards = torch.eq(y, torch.Tensor(y_batch).long()).long()
-        baseline = torch.zeros(rewards.shape).long()#for now
+        #baseline = torch.zeros(rewards.shape).long()#for now
+        baseline=rewards.mean()
         advantage = rewards - baseline
         self.policy_loss = self.reinforce(rewards, baseline)
 
