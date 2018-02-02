@@ -618,7 +618,7 @@ class RSPINN(SPINN):
                 "two zeros and the sentence encoding."
             assert all(len(buf) == 1 for buf in self.bufs), \
                 "Stacks should be fully shifted and have 1 zero."
-	print(self.rl_action.post_relu.weight)
+	#print(self.rl_action.post_relu.weight)
         return [stack[-1]
                 for stack in self.stacks], transition_acc, transition_loss
 class BaseModel(SpinnBaseModel):
