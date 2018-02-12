@@ -148,7 +148,9 @@ class RLAction(nn.Module):
         self.stack1_l = Linear()(size, out_dim, bias=False)
         self.stack2_l = Linear()(size, out_dim, bias=False)
         self.ll_after= Linear()(out_dim*4, self.relu_size, bias=True)
+        self.pre_relu=Linear()(self.relu_size, self.relu_size)
         self.post_relu= Linear()(self.relu_size, 2,  bias=True)
+
 
     def forward(self, top_buf, top_stack_1, top_stack_2, tracker_h):
         t_tracker=self.tracker_l(tracker_h)
@@ -158,7 +160,9 @@ class RLAction(nn.Module):
         next_inp=torch.cat([t_tracker, top_buf, top_stack_1, top_stack_2],1)
         out_linear=self.ll_after(next_inp)
         out_relu = F.relu(out_linear)
-        out_linear2= self.post_relu(out_relu)
+        out_relu2= self.pre_relu(out_relu)
+        out_relu2=F.relu(out_relu2)
+        out_linear2= self.post_relu(out_relu2)
         return out_linear2
 
 
@@ -728,7 +732,7 @@ class BaseModel(SpinnBaseModel):
         # TODO: Many of these ops are on the cpu. Might be worth shifting to
         # GPU.
         rewards=rewards.float()
-        baseline=rewards.mean()
+        #baseline=rewards.mean()
         advantage=rewards-baseline
         advantage=advantage.float()
 	t_preds = np.concatenate([m['t_preds']
@@ -783,7 +787,7 @@ class BaseModel(SpinnBaseModel):
         policy_loss = -1. * torch.sum(policy_losses)
         policy_loss /= log_p_action.size(0)
         policy_loss *= 0.000121392198451
-	print(policy_loss)
+	#print(policy_loss)
         return policy_loss
 
     def mc_reinforce(self, rewards, baseline):
