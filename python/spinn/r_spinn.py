@@ -731,7 +731,7 @@ class BaseModel(SpinnBaseModel):
 
         # TODO: Many of these ops are on the cpu. Might be worth shifting to
         # GPU.
-        rewards=rewards.float()
+        #rewards=rewards.float()
         #baseline=rewards.mean()
         advantage=rewards-baseline
         advantage=advantage.float()
