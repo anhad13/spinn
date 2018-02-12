@@ -727,7 +727,9 @@ class BaseModel(SpinnBaseModel):
 
         # TODO: Many of these ops are on the cpu. Might be worth shifting to
         # GPU.
-	advantage=rewards-baseline
+        rewards=rewards.float()
+        baseline=rewards.mean()
+        advantage=rewards-baseline
         advantage=advantage.float()
 	t_preds = np.concatenate([m['t_preds']
                                   for m in self.spinn.memories if 't_preds' in m])
