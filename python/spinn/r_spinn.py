@@ -159,10 +159,10 @@ class RLAction(nn.Module):
         top_stack_2 = self.stack2_l(top_stack_2)
         next_inp=torch.cat([t_tracker, top_buf, top_stack_1, top_stack_2],1)
         out_linear=self.ll_after(next_inp)
-        #out_relu = F.relu(out_linear)
+        out_relu = F.relu(out_linear)
         #out_relu2= self.pre_relu(out_relu)
         #out_relu2=F.relu(out_relu2)
-        out_linear2= self.post_relu(out_linear)
+        out_linear2= self.post_relu(out_relu)
         return out_linear2
 
 
