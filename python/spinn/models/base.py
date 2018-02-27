@@ -131,7 +131,8 @@ def load_data_and_embeddings(
         data_manager,
         logger,
         training_data_path,
-        eval_data_path):
+        eval_data_path,
+        level="all"):
 
     def choose_train(x): return True
     if FLAGS.train_genre is not None:
@@ -145,7 +146,7 @@ def load_data_and_embeddings(
         if FLAGS.data_type == "nli":
             # Load the data.
             raw_training_data = data_manager.load_data(
-                training_data_path, FLAGS.lowercase, choose_train)
+                training_data_path, FLAGS.lowercase, choose_train, level=level)
         else:
             # Load the data.
             raw_training_data = data_manager.load_data(
@@ -247,6 +248,14 @@ def get_flags():
         "deque_length",
         100,
         "Max trailing examples to use when computing average training statistics.")
+    gflags.DEFINE_bool(
+        "curriculum",
+        False,
+        "Set for C-learning.")
+    gflags.DEFINE_float(
+        "curriculum_accuracy",
+        0.5,
+        "Curriculum accuracy above which we consider more data.")
     gflags.DEFINE_string("git_sha", "", "Set automatically.")
     gflags.DEFINE_string("experiment_name", "", "")
     gflags.DEFINE_string("load_experiment_name", None, "")

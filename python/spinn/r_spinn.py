@@ -148,7 +148,6 @@ class RLAction(nn.Module):
         self.stack1_l = Linear()(size, out_dim, bias=False)
         self.stack2_l = Linear()(size, out_dim, bias=False)
         self.ll_after= Linear()(out_dim*4, self.relu_size, bias=True)
-        self.pre_relu=Linear()(self.relu_size, self.relu_size)
         self.post_relu= Linear()(self.relu_size, 2,  bias=True)
 
 
@@ -160,8 +159,6 @@ class RLAction(nn.Module):
         next_inp=torch.cat([t_tracker, top_buf, top_stack_1, top_stack_2],1)
         out_linear=self.ll_after(next_inp)
         out_relu = F.relu(out_linear)
-        #out_relu2= self.pre_relu(out_relu)
-        #out_relu2=F.relu(out_relu2)
         out_linear2= self.post_relu(out_relu)
         return out_linear2
 

@@ -5,7 +5,7 @@ import codecs
 
 SENTENCE_PAIR_DATA = True
 FIXED_VOCABULARY = None
-
+import numpy as np
 LABEL_MAP = {
     "entailment": 0,
     "neutral": 1,
@@ -32,8 +32,10 @@ def convert_binary_bracketing(parse, lowercase=False):
                 transitions.append(0)
     return tokens, transitions
 
+def get_length_average(s1, s2):
+    return float(len(s1.split(" "))+len(s2.split(" ")))/2
 
-def load_data(path, lowercase=False, choose=lambda x: True):
+def load_data(path, lowercase=False, choose=lambda x: True, eval_mode=False, level="all"):
     print "Loading", path
     examples = []
     failed_parse = 0
@@ -56,6 +58,7 @@ def load_data(path, lowercase=False, choose=lambda x: True):
             example["premise"] = loaded_example["sentence1"]
             example["hypothesis"] = loaded_example["sentence2"]
             example["example_id"] = loaded_example.get('pairID', 'NoID')
+            example["get_length_average"] =get_length_average(example["premise"], example["hypothesis"])
             if loaded_example["sentence1_binary_parse"] and loaded_example["sentence2_binary_parse"]:
                 (example["premise_tokens"], example["premise_transitions"]) = convert_binary_bracketing(
                     loaded_example["sentence1_binary_parse"], lowercase=lowercase)
@@ -67,7 +70,15 @@ def load_data(path, lowercase=False, choose=lambda x: True):
     if failed_parse > 0:
         print(
             "Warning: Failed to convert binary parse for {} examples.".format(failed_parse))
-    return examples
+    if level=="all" or level==2:
+        return examples
+    ne=np.array([e["get_length_average"] for e in examples])
+    val=np.percentile(ne, 60)
+    #return examples, val
+    examples=np.array(examples)
+    if level==1:
+        examples=examples[(ne<val)]
+    return list(examples)
 
 
 if __name__ == "__main__":

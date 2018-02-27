@@ -214,6 +214,7 @@ def train_loop(
     progress_bar.step(i=0, total=FLAGS.statistics_interval_steps)
 
     log_entry = pb.SpinnEntry()
+    level=1
     for step in range(step, FLAGS.training_steps):
         # if (step - best_dev_step) > FLAGS.early_stopping_steps_to_wait:
         #     logger.Log('No improvement after ' + str(FLAGS.early_stopping_steps_to_wait) + ' steps. Stopping training.')
@@ -372,11 +373,14 @@ def train_loop(
 
         if step > 0 and step % FLAGS.eval_interval_steps == 0:
             should_log = True
+            best_acc=0
             for index, eval_set in enumerate(eval_iterators):
                 acc, _ = evaluate(
                     FLAGS, model, eval_set, log_entry, logger, step, show_sample=(
                         step %
                         FLAGS.sample_interval_steps == 0), vocabulary=vocabulary, eval_index=index)
+                if acc>best_acc:
+                    best_acc=acc
                 if FLAGS.ckpt_on_best_dev_error and index == 0 and (
                         1 - acc) < 0.99 * best_dev_error and step > FLAGS.ckpt_step:
                     best_dev_error = 1 - acc
@@ -386,6 +390,16 @@ def train_loop(
                         acc)
                     trainer.save(best_checkpoint_path, step, best_dev_error, best_dev_step)
             progress_bar.reset()
+            if FLAGS.curriculum:
+                if best_acc> FLAGS.curriculum_accuracy and current_level==1:
+                    current_level=2
+                    _, _, training_data_iter, _ = \
+                        load_data_and_embeddings(FLAGS, data_manager, logger,
+                                 FLAGS.training_data_path, FLAGS.eval_data_path, level=current_level)
+                    print('Curriculum: Update level.')
+                else:
+                    print('Curriculum: Same level.')
+
 
         if step > FLAGS.ckpt_step and step % FLAGS.ckpt_interval_steps == 0:
             should_log = True
@@ -419,9 +433,13 @@ def run(only_forward=False):
         flag.value = str(v)
 
     # Get Data and Embeddings
+    if FLAGS.curriculum:
+        level=1
+    else:
+        level="all"
     vocabulary, initial_embeddings, training_data_iter, eval_iterators = \
         load_data_and_embeddings(FLAGS, data_manager, logger,
-                                 FLAGS.training_data_path, FLAGS.eval_data_path)
+                                 FLAGS.training_data_path, FLAGS.eval_data_path, level=level)
 
     # Build model.
     vocab_size = len(vocabulary)
