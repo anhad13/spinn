@@ -214,7 +214,8 @@ def train_loop(
     progress_bar.step(i=0, total=FLAGS.statistics_interval_steps)
 
     log_entry = pb.SpinnEntry()
-    level=1
+    current_level=1
+
     for step in range(step, FLAGS.training_steps):
         # if (step - best_dev_step) > FLAGS.early_stopping_steps_to_wait:
         #     logger.Log('No improvement after ' + str(FLAGS.early_stopping_steps_to_wait) + ' steps. Stopping training.')
