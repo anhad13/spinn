@@ -392,6 +392,7 @@ def train_loop(
             if FLAGS.curriculum:
                 if best_acc> FLAGS.curriculum_accuracy and current_level==1:
                     current_level=2
+                    data_manager = get_data_manager(FLAGS.data_type)
                     _, _, training_data_iter, _ = \
                         load_data_and_embeddings(FLAGS, data_manager, logger,
                                  FLAGS.training_data_path, FLAGS.eval_data_path, level=current_level)
