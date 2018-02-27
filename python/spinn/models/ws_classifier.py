@@ -376,9 +376,7 @@ def train_loop(
             best_acc=0
             for index, eval_set in enumerate(eval_iterators):
                 acc, _ = evaluate(
-                    FLAGS, model, eval_set, log_entry, logger, step, show_sample=(
-                        step %
-                        FLAGS.sample_interval_steps == 0), vocabulary=vocabulary, eval_index=index)
+                    FLAGS, model, eval_set, log_entry, logger, step, show_sample=True, vocabulary=vocabulary, eval_index=index)
                 if acc>best_acc:
                     best_acc=acc
                 if FLAGS.ckpt_on_best_dev_error and index == 0 and (
