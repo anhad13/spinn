@@ -183,7 +183,7 @@ def train_loop(
         best_dev_error,
         best_dev_step,
         vocabulary,
-        current_level=1):
+        current_level="all"):
     # Accumulate useful statistics.
     A = Accumulator(maxlen=FLAGS.deque_length)
 
@@ -391,14 +391,18 @@ def train_loop(
                     trainer.save(best_checkpoint_path, step, best_dev_error, best_dev_step)
             progress_bar.reset()
             if FLAGS.curriculum:
+		print("LEVEL: "+str(current_level))
                 if best_acc> FLAGS.curriculum_accuracy and current_level==1:
                     current_level=2
-                    data_manager = get_data_manager(FLAGS.data_type)
-                    vocabulary, initial_embeddings, training_data_iter, eval_iterators = \
-                        load_data_and_embeddings(FLAGS, data_manager, logger,
-                                 FLAGS.training_data_path, FLAGS.eval_data_path, level=current_level)
+                    #data_manager = get_data_manager(FLAGS.data_type)
+                    #vocabulary, initial_embeddings, training_data_iter, eval_iterators = \
+                    #    load_data_and_embeddings(FLAGS, data_manager, logger,
+                    #             FLAGS.training_data_path, FLAGS.eval_data_path, level=current_level)
                     print('Curriculum: Update level.')
-                    train_loop(FLAGS,model,optimizer,  trainer, training_data_iter, eval_iterators, logger, step, best_dev_error, best_dev_step, vocabulary, current_level=current_level)
+                    should_log=True
+		    trainer.save(standard_checkpoint_path, step, best_dev_error, best_dev_step)
+                    #train_loop(FLAGS,model,optimizer,  trainer, training_data_iter, eval_iterators, logger, step, best_dev_error, best_dev_step, vocabulary, current_level=current_level)
+		    run(level=current_level)
                 else:
                     print('Curriculum: Same level.')
 
@@ -418,7 +422,7 @@ def train_loop(
 
 
 
-def run(only_forward=False):
+def run(only_forward=False, level="all"):
     logger = afs_safe_logger.ProtoLogger(
         log_path(FLAGS), print_formatter=create_log_formatter(
             True, False), write_proto=FLAGS.write_proto_to_log)
@@ -435,10 +439,10 @@ def run(only_forward=False):
         flag.value = str(v)
 
     # Get Data and Embeddings
-    if FLAGS.curriculum:
+    if FLAGS.curriculum and level=="all":
         level=1
-    else:
-        level="all"
+    #else:
+    #    level="all"
     vocabulary, initial_embeddings, training_data_iter, eval_iterators = \
         load_data_and_embeddings(FLAGS, data_manager, logger,
                                  FLAGS.training_data_path, FLAGS.eval_data_path, level=level)
@@ -519,7 +523,8 @@ def run(only_forward=False):
             step,
             best_dev_error,
             best_dev_step,
-            vocabulary)
+            vocabulary,
+	    current_level=level)
 
 
 
