@@ -182,7 +182,8 @@ def train_loop(
         step,
         best_dev_error,
         best_dev_step,
-        vocabulary):
+        vocabulary,
+        current_level=1):
     # Accumulate useful statistics.
     A = Accumulator(maxlen=FLAGS.deque_length)
 
@@ -214,7 +215,7 @@ def train_loop(
     progress_bar.step(i=0, total=FLAGS.statistics_interval_steps)
 
     log_entry = pb.SpinnEntry()
-    current_level=1
+    #current_level=1
 
     for step in range(step, FLAGS.training_steps):
         # if (step - best_dev_step) > FLAGS.early_stopping_steps_to_wait:
@@ -393,10 +394,11 @@ def train_loop(
                 if best_acc> FLAGS.curriculum_accuracy and current_level==1:
                     current_level=2
                     data_manager = get_data_manager(FLAGS.data_type)
-                    _, _, training_data_iter, _ = \
+                    vocabulary, initial_embeddings, training_data_iter, eval_iterators = \
                         load_data_and_embeddings(FLAGS, data_manager, logger,
                                  FLAGS.training_data_path, FLAGS.eval_data_path, level=current_level)
                     print('Curriculum: Update level.')
+                    train_loop(FLAGS,model,optimizer,  trainer, training_data_iter, eval_iterators, logger, step, best_dev_error, best_dev_step, vocabulary, current_level=current_level)
                 else:
                     print('Curriculum: Same level.')
 
